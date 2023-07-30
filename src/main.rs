@@ -24,8 +24,7 @@ macro_rules! retry_interrupts {
 }
 fn main() -> Result<(), Error> {
     let dir = std::env::args_os()
-        .nth(1)
-        .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "No input given"))?;
+        .nth(1).unwrap_or_default();
     let paths = read_dir(dir)?.flatten().map(|x| x.path());
 
     remove_duplicates(paths);
