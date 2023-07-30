@@ -98,7 +98,7 @@ fn scan_file(cur_path: PathBuf) {
     for old_path in paths.iter() {
         // Invalidates other iters if async:
         // if we exit the loop, another thread could lengthen the list—meaning this thread would no longer check all unique files with the same ID;
-        // this file, and the recently added file could be a duplicate; if it is:
+        // the recently added file could be a duplicate; if it is:
         // this thread will now add this file as another unique file, thusly leaving us with 2 identical files in the list of unique files.
         let Ok(other) = read(old_path) else {
             continue
