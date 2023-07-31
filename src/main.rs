@@ -78,7 +78,7 @@ fn read_usize<P: AsRef<Path>>(path: P) -> Result<usize, Error> {
 
 fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
     use std::fs::read;
-    retry_interrupts!(read(&path))
+    read(&path)
 }
 
 fn scan_file(cur_path: PathBuf) {
