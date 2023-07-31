@@ -1,5 +1,5 @@
 use nohash_hasher::IntMap as HashMap;
-use std::fs::{read_dir, remove_file};
+use std::fs::{read, read_dir, remove_file};
 use std::io::{Error, ErrorKind};
 use std::mem::MaybeUninit;
 use std::path::{Path, PathBuf};
@@ -76,11 +76,6 @@ fn read_usize<P: AsRef<Path>>(path: P) -> Result<usize, Error> {
     }
 }
 
-fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
-    use std::fs::read;
-    read(&path)
-}
-
 fn scan_file(cur_path: PathBuf) {
     let Ok(id) = read_usize(&cur_path) else {
         return;
@@ -105,7 +100,8 @@ fn scan_file(cur_path: PathBuf) {
         };
 
         if other == data {
-            match retry_interrupts!(remove_file(&cur_path)) { // should be async safe, as no edits are being made to MAP after. 
+            match retry_interrupts!(remove_file(&cur_path)) {
+                // should be async safe, as no edits are being made to MAP after.
                 Ok(_) => unsafe { DELETED += 1 },
                 Err(err) => eprintln!("{err}"),
             };
