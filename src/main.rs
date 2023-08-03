@@ -1,13 +1,15 @@
 use nohash_hasher::IntMap as HashMap;
 use std::fs::{read, read_dir, remove_file};
 use std::io::{Error, ErrorKind};
-use std::mem::MaybeUninit;
+use std::mem::{MaybeUninit, transmute};
 use std::path::{Path, PathBuf};
 
 static mut DELETED: usize = 0;
 static mut SCANNED: usize = 0;
 
-static mut MAP: MaybeUninit<HashMap<usize, Vec<PathBuf>>> = MaybeUninit::uninit();
+type ID = usize;
+
+static mut MAP: MaybeUninit<HashMap<ID, Vec<PathBuf>>> = MaybeUninit::uninit();
 
 macro_rules! retry_interrupts {
     ($e:expr) => {
@@ -66,18 +68,24 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
     HashMap::with_capacity_and_hasher(num, BuildNoHashHasher::default())
 }
 
-fn read_usize<P: AsRef<Path>>(path: P) -> Result<usize, Error> {
+fn read_id<P: AsRef<Path>>(path: P) -> Result<ID, Error> {
     use std::{fs::File, io::Read, mem::size_of};
-    let mut buf = [0u8; size_of::<usize>()];
 
-    match retry_interrupts!(File::open(&path))?.read_exact(&mut buf) {
-        Ok(_) => Ok(usize::from_ne_bytes(buf)),
+    let mut id: ID = 0;
+    let result;
+
+    unsafe { // perform cursed conversion for alignment of buffer (this is gonna be really awkward if it turns out the compiler already did proper alignment)    
+        result = retry_interrupts!(File::open(&path))?.read_exact(transmute::<&mut _,&mut [u8; size_of::<ID>()]>(&mut id));
+    } // reasons why not to do cursed optimizations without benchmarking: you don't know if it is an actual optimization.
+
+    match result {
+        Ok(_) => Ok(id),
         Err(e) => Err(e),
     }
 }
 
 fn scan_file(cur_path: PathBuf) {
-    let Ok(id) = read_usize(&cur_path) else {
+    let Ok(id) = read_id(&cur_path) else {
         return;
     };
 
