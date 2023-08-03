@@ -1,7 +1,7 @@
 use nohash_hasher::IntMap as HashMap;
 use std::fs::{read, read_dir, remove_file};
 use std::io::{Error, ErrorKind};
-use std::mem::{MaybeUninit, transmute};
+use std::mem::MaybeUninit;
 use std::path::{Path, PathBuf};
 
 static mut DELETED: usize = 0;
@@ -69,6 +69,7 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
 }
 
 fn read_id<P: AsRef<Path>>(path: P) -> Result<ID, Error> {
+    use std::mem::transmute;
     use std::{fs::File, io::Read, mem::size_of};
 
     let mut id: ID = 0;
