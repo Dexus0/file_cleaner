@@ -108,8 +108,8 @@ fn scan_file(cur_path: PathBuf) {
         };
 
         if other == data {
+            // should be async safe, as no edits are being made to MAP after.
             match retry_interrupts!(remove_file(&cur_path)) {
-                // should be async safe, as no edits are being made to MAP after.
                 Ok(_) => unsafe { DELETED += 1 },
                 Err(err) => eprintln!("{err}"),
             };
