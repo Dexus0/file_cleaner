@@ -75,8 +75,10 @@ fn read_id<P: AsRef<Path>>(path: P) -> Result<ID, Error> {
     let mut id: ID = 0;
     let result;
 
-    unsafe { // perform cursed conversion for alignment of buffer (this is gonna be really awkward if it turns out the compiler already did proper alignment)    
-        result = retry_interrupts!(File::open(&path))?.read_exact(transmute::<&mut _,&mut [u8; size_of::<ID>()]>(&mut id));
+    unsafe {
+        // perform cursed conversion for alignment of buffer (this is gonna be really awkward if it turns out the compiler already did proper alignment)
+        result = retry_interrupts!(File::open(&path))?
+            .read_exact(transmute::<&mut _, &mut [u8; size_of::<ID>()]>(&mut id));
     } // reasons why not to do cursed optimizations without benchmarking: you don't know if it is an actual optimization.
 
     match result {
