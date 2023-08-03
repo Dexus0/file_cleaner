@@ -1,7 +1,7 @@
 use nohash_hasher::IntMap as HashMap;
 use std::fs::{read, read_dir, remove_file};
 use std::io::{Error, ErrorKind};
-use std::mem::MaybeUninit;
+use std::mem::{size_of, MaybeUninit};
 use std::path::{Path, PathBuf};
 
 static mut DELETED: usize = 0;
@@ -68,21 +68,18 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
     HashMap::with_capacity_and_hasher(num, BuildNoHashHasher::default())
 }
 
+union IDBuf {
+    id: ID,
+    buf: [u8; size_of::<ID>()],
+}
+
 fn read_id<P: AsRef<Path>>(path: P) -> Result<ID, Error> {
-    use std::mem::transmute;
-    use std::{fs::File, io::Read, mem::size_of};
+    use std::{fs::File, io::Read};
 
-    let mut id: ID = 0;
-    let result;
+    let mut id = IDBuf { id: 0 };
 
-    unsafe {
-        // perform cursed conversion for alignment of buffer (this is gonna be really awkward if it turns out the compiler already did proper alignment)
-        result = retry_interrupts!(File::open(&path))?
-            .read_exact(transmute::<&mut _, &mut [u8; size_of::<ID>()]>(&mut id));
-    } // reasons why not to do cursed optimizations without benchmarking: you don't know if it is an actual optimization.
-
-    match result {
-        Ok(_) => Ok(id),
+    match retry_interrupts!(File::open(&path))?.read_exact(unsafe { &mut id.buf }) {
+        Ok(_) => Ok(unsafe { id.id }),
         Err(e) => Err(e),
     }
 }
