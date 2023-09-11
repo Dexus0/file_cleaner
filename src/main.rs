@@ -89,8 +89,8 @@ fn scan_file(cur_path: PathBuf) {
         return;
     };
 
-    let Some(paths) = (unsafe{MAP.assume_init_mut().get_mut(&id)}) else {
-        unsafe{ MAP.assume_init_mut().insert(id, vec![cur_path]);}
+    let Some(paths) = unsafe { MAP.assume_init_mut() }.get_mut(&id) else {
+        unsafe { MAP.assume_init_mut() }.insert(id, vec![cur_path]);
         return;
     };
 
@@ -103,9 +103,7 @@ fn scan_file(cur_path: PathBuf) {
         // if we exit the loop, another thread could lengthen the list—meaning this thread would no longer check all unique files with the same ID;
         // the recently added file could be a duplicate; if it is:
         // this thread will now add this file as another unique file, thusly leaving us with 2 identical files in the list of unique files.
-        let Ok(other) = read(old_path) else {
-            continue
-        };
+        let Ok(other) = read(old_path) else { continue };
 
         if other == data {
             // should be async safe, as no edits are being made to MAP after.
