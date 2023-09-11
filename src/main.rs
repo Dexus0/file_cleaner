@@ -60,10 +60,14 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
     use std::collections::HashMap;
     let tuple = iter.size_hint();
 
-    let num = match tuple.1 {
-        Some(size) => size,
-        None => tuple.0,
-    };
+    fn inner(tuple: (usize, Option<usize>)) -> usize {
+        match tuple.1 {
+            Some(size) => size,
+            None => tuple.0,
+        }
+    }
+
+    let num = inner(tuple);
 
     HashMap::with_capacity_and_hasher(num, BuildNoHashHasher::default())
 }
