@@ -77,12 +77,12 @@ union IDBuf {
     buf: [u8; size_of::<ID>()],
 }
 
-fn read_id<P: AsRef<Path>>(path: P) -> Result<ID, Error> {
+fn read_id(path: &Path) -> Result<ID, Error> {
     use std::{fs::File, io::Read};
 
     let mut id = IDBuf { id: 0 };
 
-    match retry_interrupts!(File::open(&path))?.read_exact(unsafe { &mut id.buf }) {
+    match retry_interrupts!(File::open(path))?.read_exact(unsafe { &mut id.buf }) {
         Ok(_) => Ok(unsafe { id.id }),
         Err(e) => Err(e),
     }
