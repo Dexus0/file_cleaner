@@ -115,7 +115,7 @@ fn scan_file(cur_path: PathBuf) {
                 Ok(_) => unsafe { DELETED += 1 },
                 Err(err) => eprintln!("{err}"),
             };
-            drop(cur_path);
+            drop(cur_path); // cur_path is either removed or in an invalid state; drop it to make sure it can't be used.
             return;
         }
     }
