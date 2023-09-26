@@ -55,7 +55,7 @@ fn remove_duplicates(paths: impl Iterator<Item = PathBuf>) {
 }
 
 fn print_scanned(num: usize) {
-    print!("\rscanned: {num}");
+    print!("\rscanned: {}", num);
 }
 
 fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
