@@ -72,18 +72,15 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
     HashMap::with_capacity_and_hasher(num, BuildNoHashHasher::default())
 }
 
-union IDBuf {
-    id: ID,
-    buf: [u8; size_of::<ID>()],
-}
-
 fn read_id(path: &Path) -> Result<ID, Error> {
     use std::{fs::File, io::Read};
 
-    let mut id = IDBuf { id: 0 };
+    let mut id: ID = 0;
 
-    match retry_interrupts!(File::open(path))?.read_exact(unsafe { &mut id.buf }) {
-        Ok(_) => Ok(unsafe { id.id }),
+    match retry_interrupts!(File::open(path))?
+        .read_exact(unsafe { &mut *(&mut id as *mut ID as *mut [u8; size_of::<ID>()]) })
+    {
+        Ok(_) => Ok(id),
         Err(e) => Err(e),
     }
 }
