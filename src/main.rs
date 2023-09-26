@@ -39,11 +39,14 @@ fn remove_duplicates(paths: impl Iterator<Item = PathBuf>) {
         print_scanned(SCANNED); // prints 0 for when no files were found
     }
     for cur_path in paths {
-        scan_file(cur_path);
-        unsafe {
-            SCANNED += 1;
-            print_scanned(SCANNED);
+        fn inner(cur_path: PathBuf) {
+            scan_file(cur_path);
+            unsafe {
+                SCANNED += 1;
+                print_scanned(SCANNED);
+            }
         }
+        inner(cur_path);
     }
 
     unsafe {
