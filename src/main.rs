@@ -35,6 +35,10 @@ fn main() -> Result<(), Error> {
     let dir = std::env::args_os().nth(1).unwrap_or_default();
     let paths = read_dir(dir)?.flatten().map(|x| x.path());
 
+    unsafe {
+        // initialize MAP before before asynchronous code
+        MAP = MaybeUninit::new(map_from_iter(&paths));
+    }
     remove_duplicates(paths);
 
     Ok(())
@@ -42,7 +46,6 @@ fn main() -> Result<(), Error> {
 
 fn remove_duplicates(paths: impl Iterator<Item = PathBuf>) {
     unsafe {
-        MAP = MaybeUninit::new(map_from_iter(&paths)); // initialize MAP before before asynchronous code
         print_scanned(SCANNED); // prints 0 for when no files were found
     }
     for cur_path in paths {
