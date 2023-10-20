@@ -10,8 +10,9 @@ use std::io::{Error, ErrorKind};
 use std::mem::{size_of, MaybeUninit};
 use std::path::{Path, PathBuf};
 
-static mut DELETED: usize = 0;
-static mut SCANNED: usize = 0;
+static mut DELETED: usize = 0; // as long as program-local threading is used, any read/write should be safe
+static mut SCANNED: usize = 0; // as long as program-local threading is used, any read/write should be safe
+                               // I'm relatively certain we shouldn't have to worry about harware reordering within 1 program.
 
 type ID = usize;
 
