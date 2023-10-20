@@ -60,18 +60,17 @@ fn remove_duplicates(paths: impl Iterator<Item = PathBuf>) {
     }
 
     unsafe {
-        println!("\ndeleted: {}", DELETED);
+        println!("\ndeleted: {DELETED}");
     }
 }
 
 fn print_scanned(num: usize) {
-    print!("\rscanned: {}", num);
+    print!("\rscanned: {num}");
 }
 
 fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
     use nohash_hasher::BuildNoHashHasher;
     use std::collections::HashMap;
-    let tuple = iter.size_hint();
 
     fn inner(tuple: (usize, Option<usize>)) -> usize {
         match tuple.1 {
@@ -79,7 +78,7 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
             None => tuple.0,
         }
     }
-
+    let tuple = iter.size_hint();
     let num = inner(tuple);
 
     HashMap::with_capacity_and_hasher(num, BuildNoHashHasher::default())
@@ -91,9 +90,9 @@ fn read_id(path: &Path) -> Result<ID, Error> {
     let mut id: ID = 0;
 
     match retry_interrupts!(File::open(path))?
-        .read_exact(unsafe { &mut *(&mut id as *mut ID as *mut [u8; size_of::<ID>()]) })
+        .read_exact(unsafe { &mut *(&mut id as *mut ID).cast::<[u8; size_of::<ID>()]>() })
     {
-        Ok(_) => Ok(id),
+        Ok(()) => Ok(id),
         Err(e) => Err(e),
     }
 }
@@ -112,7 +111,7 @@ fn scan_file(cur_path: PathBuf) {
         return;
     };
 
-    for old_path in paths.iter() {
+    for old_path in &*paths {
         // Invalidates other iters if async:
         // if we exit the loop, another thread could lengthen the list—meaning this thread would no longer check all unique files with the same ID;
         // the recently added file could be a duplicate, if it is:
@@ -122,7 +121,7 @@ fn scan_file(cur_path: PathBuf) {
         if other == data {
             // should be async safe, as no edits are being made to MAP after.
             match retry_interrupts!(remove_file(&cur_path)) {
-                Ok(_) => unsafe { DELETED += 1 },
+                Ok(()) => unsafe { DELETED += 1 },
                 Err(err) => eprintln!("{err}"),
             };
             drop(cur_path); // cur_path is either removed or in an invalid state; drop it to make sure it can't be used.
