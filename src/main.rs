@@ -73,16 +73,16 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
     use nohash_hasher::BuildNoHashHasher;
     use std::collections::HashMap;
 
-    fn inner(tuple: (usize, Option<usize>)) -> usize {
-        match tuple.1 {
-            Some(size) => size,
-            None => tuple.0,
+    fn inner(size_hint: (usize, Option<usize>)) -> usize {
+        match size_hint.1 {
+            Some(size) => size,  // return upperbound hint
+            None => size_hint.0, // return lowerbound hint
         }
     }
-    let tuple = iter.size_hint();
-    let num = inner(tuple);
+    let size_hint = iter.size_hint();
+    let capacity = inner(size_hint);
 
-    HashMap::with_capacity_and_hasher(num, BuildNoHashHasher::default())
+    HashMap::with_capacity_and_hasher(capacity, BuildNoHashHasher::default())
 }
 
 fn read_id(path: &Path) -> Result<ID, Error> {
