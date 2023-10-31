@@ -15,6 +15,7 @@ static mut SCANNED: usize = 0; // as long as program-local threading is used, an
                                // I'm relatively certain we shouldn't have to worry about hardware reordering within 1 program.
 
 type ID = usize;
+const IDSIZE: usize = size_of::<ID>();
 
 static mut MAP: MaybeUninit<HashMap<ID, Vec<PathBuf>>> = MaybeUninit::uninit();
 
@@ -87,12 +88,10 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
 fn read_id(path: &Path) -> Result<ID, Error> {
     use std::{fs::File, io::Read};
 
-    let mut id: ID = 0;
+    let mut buf = [0u8; IDSIZE];
 
-    match retry_interrupts!(File::open(path))?
-        .read_exact(unsafe { &mut *(&mut id as *mut ID).cast::<[u8; size_of::<ID>()]>() })
-    {
-        Ok(()) => Ok(id),
+    match retry_interrupts!(File::open(path))?.read_exact(&mut buf) {
+        Ok(()) => Ok(ID::from_ne_bytes(buf)),
         Err(e) => Err(e),
     }
 }
