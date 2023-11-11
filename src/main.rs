@@ -13,6 +13,9 @@ use std::path::{Path, PathBuf};
 static mut DELETED: usize = 0; // as long as program-local threading is used, any read/write should be safe
 static mut SCANNED: usize = 0; // as long as program-local threading is used, any read/write should be safe
                                // I'm relatively certain we shouldn't have to worry about hardware reordering within 1 program.
+                               // It's possible any form of concurrency is safe,
+                               // as long as the threads only deal with 1 version of the variable (as in, there's no seperate value for each thread.)
+                               // Cache coherency might be an issue for any of the static variables.
 
 type ID = usize;
 const IDSIZE: usize = size_of::<ID>();
