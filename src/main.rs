@@ -15,7 +15,7 @@ static mut SCANNED: usize = 0; // as long as program-local threading is used, an
                                // I'm relatively certain we shouldn't have to worry about hardware reordering within 1 program.
                                // It's possible any form of concurrency is safe,
                                // as long as the threads only deal with 1 version of the variable (as in, there's no seperate value for each thread.)
-                               // Cache coherency might be an issue for any of the static variables.
+                               // Beware of cache coherency issues when not using program-local threading.
 
 type ID = usize;
 const IDSIZE: usize = size_of::<ID>();
