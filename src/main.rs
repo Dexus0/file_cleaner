@@ -78,8 +78,8 @@ fn map_from_iter<K, V>(iter: &impl Iterator) -> HashMap<K, V> {
 
     fn inner(size_hint: (usize, Option<usize>)) -> usize {
         match size_hint.1 {
-            Some(size) => size,  // return upperbound hint
-            None => size_hint.0, // return lowerbound hint
+            Some(size) => size,  // upperbound hint
+            None => size_hint.0, // lowerbound hint
         }
     }
     let size_hint = iter.size_hint();
