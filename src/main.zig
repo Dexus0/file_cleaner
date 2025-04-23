@@ -52,11 +52,13 @@ fn handle_dir(dir_in: anytype) !void {
             return err;
         };
 
+    var duplicates = std.ArrayListAlignedUnmanaged(File, @sizeOf(File)).empty;
+    defer duplicates.deinit(sys_alloc);
+
     var g_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer g_alloc.deinit();
 
     var unique_files = std.StringHashMapUnmanaged(FileList).empty;
-    var duplicates = FileList.empty;
 
     var f_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer f_alloc.deinit();
@@ -121,7 +123,7 @@ fn handle_dir(dir_in: anytype) !void {
 
             if (old_size == null) if (new_data.len != old_data.len) continue;
             if (data_eql(new_data, old_data)) {
-                try duplicates.append(g_alloc.allocator(), new_file);
+                try duplicates.append(sys_alloc, new_file);
                 {
                     // If there are more files than usize, we'll have run out of memory already
                     @setRuntimeSafety(false);
