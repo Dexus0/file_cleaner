@@ -107,6 +107,10 @@ fn handle_dir(dir_in: anytype) !void {
 
             if (old_size) |size| if (size != new_data.len) continue;
 
+            old_file.seekTo(0) catch |err| { // given that old_files are stored, they'll have been read at-least once already so we need to reset the reader head.
+                log.err("{}", .{err});
+                continue;
+            };
             const old_data = old_file.readToEndAllocOptions(f_alloc.allocator(), new_size.?, new_size, 1, null) catch |err| {
                 try errIfInSet(AllocationError, err);
                 if (err == error.FileTooBig) continue;
