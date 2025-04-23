@@ -55,8 +55,8 @@ fn handle_dir(dir_in: anytype) !void {
     var duplicates = std.ArrayListAlignedUnmanaged(File, @sizeOf(File)).empty;
     defer duplicates.deinit(sys_alloc);
 
-    var g_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer g_alloc.deinit();
+    var u_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer u_alloc.deinit();
 
     var unique_files = std.StringHashMapUnmanaged(FileList).empty;
 
@@ -95,9 +95,9 @@ fn handle_dir(dir_in: anytype) !void {
 
         new_size = new_data.len;
 
-        const unique = try unique_files.getOrPut(g_alloc.allocator(), new_data);
+        const unique = try unique_files.getOrPut(u_alloc.allocator(), new_data);
         if (!unique.found_existing) {
-            unique.value_ptr.* = try FileList.initCapacity(g_alloc.allocator(), 1);
+            unique.value_ptr.* = try FileList.initCapacity(u_alloc.allocator(), 1);
             unique.value_ptr.appendAssumeCapacity(new_file);
             continue;
         }
@@ -133,7 +133,7 @@ fn handle_dir(dir_in: anytype) !void {
             }
         } else {
             @branchHint(.unlikely);
-            try unique.value_ptr.append(g_alloc.allocator(), new_file);
+            try unique.value_ptr.append(u_alloc.allocator(), new_file);
         }
     }
 }
