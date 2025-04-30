@@ -29,7 +29,6 @@ pub fn main() !void {
 }
 
 fn handle_dir(dir_in: anytype) !void {
-    const FileList = std.ArrayListUnmanaged(std.fs.File);
     const T = @TypeOf(dir_in);
 
     var path_buf: [std.fs.max_path_bytes]u8 = undefined;
@@ -58,7 +57,7 @@ fn handle_dir(dir_in: anytype) !void {
     var u_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer u_alloc.deinit();
 
-    var unique_files = std.StringHashMapUnmanaged(FileList).empty;
+    var unique_files = std.StringHashMapUnmanaged(void).empty;
 
     var f_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer f_alloc.deinit();
@@ -96,44 +95,13 @@ fn handle_dir(dir_in: anytype) !void {
         new_size = new_data.len;
 
         const unique = try unique_files.getOrPut(u_alloc.allocator(), new_data);
-        if (!unique.found_existing) {
-            unique.value_ptr.* = try FileList.initCapacity(u_alloc.allocator(), 1);
-            unique.value_ptr.appendAssumeCapacity(new_file);
-            continue;
-        }
-        for (unique.value_ptr.items) |old_file| {
-            const old_size = if (old_file.stat()) |stat| stat.size else |err| err: {
-                log.err("{}", .{err});
-                break :err null;
-            };
-
-            if (old_size) |size| if (size != new_data.len) continue;
-
-            old_file.seekTo(0) catch |err| { // given that old_files are stored, they'll have been read at-least once already so we need to reset the reader head.
-                log.err("{}", .{err});
-                continue;
-            };
-            const old_data = old_file.readToEndAllocOptions(f_alloc.allocator(), new_size.?, new_size, 1, null) catch |err| {
-                try errIfInSet(AllocationError, err);
-                if (err == error.FileTooBig) continue;
-                log.err("{}", .{err});
-                continue;
-            };
-            defer f_alloc.allocator().free(old_data);
-
-            if (old_size == null) if (new_data.len != old_data.len) continue;
-            if (data_eql(new_data, old_data)) {
-                try duplicates.append(sys_alloc, new_file);
-                {
-                    // If there are more files than usize, we'll have run out of memory already
-                    @setRuntimeSafety(false);
-                    deleted += 1;
-                }
-                break;
+        if (unique.found_existing) {
+            try duplicates.append(sys_alloc, new_file);
+            {
+                // If there are more files than usize, we'll have run out of memory already
+                @setRuntimeSafety(false);
+                deleted += 1;
             }
-        } else {
-            @branchHint(.unlikely);
-            try unique.value_ptr.append(u_alloc.allocator(), new_file);
         }
     }
 }
