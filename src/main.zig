@@ -54,10 +54,8 @@ fn handle_dir(dir_in: anytype) !void {
     var duplicates = std.ArrayListAlignedUnmanaged(File, @sizeOf(File)).empty;
     defer duplicates.deinit(sys_alloc);
 
-    var u_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer u_alloc.deinit();
-
     var unique_files = std.StringHashMapUnmanaged(void).empty;
+    defer unique_files.deinit(sys_alloc);
 
     var f_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer f_alloc.deinit();
@@ -94,7 +92,7 @@ fn handle_dir(dir_in: anytype) !void {
 
         new_size = new_data.len;
 
-        const unique = try unique_files.getOrPut(u_alloc.allocator(), new_data);
+        const unique = try unique_files.getOrPut(sys_alloc, new_data);
         if (unique.found_existing) {
             try duplicates.append(sys_alloc, new_file);
             {
