@@ -52,16 +52,16 @@ fn handle_dir(dir_in: anytype) !void {
         };
 
     var duplicates = std.ArrayListAlignedUnmanaged(File, @sizeOf(File)).empty;
-    defer duplicates.deinit(sys_alloc);
+    defer {
+        log.info("deleted: {d}", .{duplicates.items.len});
+        duplicates.deinit(sys_alloc);
+    }
 
     var unique_files = std.StringHashMapUnmanaged(void).empty;
     defer unique_files.deinit(sys_alloc);
 
     var f_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer f_alloc.deinit();
-
-    var deleted: usize = 0;
-    defer log.info("deleted: {d}", .{deleted});
 
     var entries = dir.iterateAssumeFirstIteration();
     const error_handler = struct {
@@ -93,14 +93,8 @@ fn handle_dir(dir_in: anytype) !void {
         new_size = new_data.len;
 
         const unique = try unique_files.getOrPut(sys_alloc, new_data);
-        if (unique.found_existing) {
+        if (unique.found_existing)
             try duplicates.append(sys_alloc, new_file);
-            {
-                // If there are more files than usize, we'll have run out of memory already
-                @setRuntimeSafety(false);
-                deleted += 1;
-            }
-        }
     }
 }
 
