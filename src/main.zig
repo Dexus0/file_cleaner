@@ -53,7 +53,7 @@ fn handle_dir(dir_in: anytype) !void {
 
     var duplicates = std.ArrayListAlignedUnmanaged(File, @sizeOf(File)).empty;
     defer {
-        log.info("deleted: {d}", .{duplicates.items.len});
+        log.info("{s}: deleted: {d}", .{ dir_str, duplicates.items.len });
         duplicates.deinit(sys_alloc);
     }
 
@@ -65,27 +65,27 @@ fn handle_dir(dir_in: anytype) !void {
 
     var entries = dir.iterateAssumeFirstIteration();
     const error_handler = struct {
-        fn error_handler(iter: *Dir.Iterator) ?Dir.Entry {
+        fn error_handler(iter: *Dir.Iterator, scope: @TypeOf(dir_str)) ?Dir.Entry {
             return iter.next() catch |err| {
-                log.err("{}", .{err});
-                return error_handler(iter); //@call(.always_tail, error_handler, .{iter}); // as of 0.14.0: unclear LLVM error
+                log.err("{s}: {}", .{ scope, err });
+                return error_handler(iter, scope); //@call(.always_tail, error_handler, .{iter}); // as of 0.14.0: unclear LLVM error
             };
         }
     }.error_handler;
-    while (error_handler(&entries)) |entry| {
+    while (error_handler(&entries, dir_str)) |entry| {
         if (entry.kind != .file) continue;
         const new_file = dir.openFile(entry.name, .{}) catch |err| {
-            log.err("{s}: {}", .{ entry.name, err });
+            log.err("{s}: {s}: {}", .{ dir_str, entry.name, err });
             continue;
         };
 
         var new_size = if (new_file.stat()) |stat| stat.size else |err| err: {
-            log.err("{}", .{err});
+            log.err("{s}: {s}: {}", .{ dir_str, entry.name, err });
             break :err null;
         };
         const new_data = new_file.readToEndAllocOptions(f_alloc.allocator(), new_size orelse std.math.maxInt(usize), new_size, 1, null) catch |err| {
             try errIfInSet(AllocationError, err);
-            log.err("{}", .{err});
+            log.err("{s}: {s}: {}", .{ dir_str, entry.name, err });
             continue;
         };
         defer _ = f_alloc.reset(.retain_capacity);
@@ -98,9 +98,6 @@ fn handle_dir(dir_in: anytype) !void {
     }
 }
 
-const ScopedLog = struct {
-    scope: []u8,
-};
 fn data_eql(a: []const u8, b: []const u8) bool {
     for (a, b) |a_c, b_c| {
         if (a_c != b_c) return false;
