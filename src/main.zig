@@ -78,7 +78,6 @@ fn handle_dir(dir_in: anytype) !void {
             log.err("{s}: {}", .{ entry.name, err });
             continue;
         };
-        defer _ = f_alloc.reset(.retain_capacity);
 
         var new_size = if (new_file.stat()) |stat| stat.size else |err| err: {
             log.err("{}", .{err});
@@ -89,6 +88,7 @@ fn handle_dir(dir_in: anytype) !void {
             log.err("{}", .{err});
             continue;
         };
+        defer _ = f_alloc.reset(.retain_capacity);
 
         new_size = new_data.len;
 
