@@ -32,7 +32,7 @@ fn handle_dir(dir_in: anytype) !void {
     const T = @TypeOf(dir_in);
 
     var path_buf: [std.fs.max_path_bytes]u8 = undefined;
-    var dir_str: []const u8 = path_buf[0..1];
+    var dir_str: []const u8 = path_buf[0..0];
 
     if (T == [:0]const u8) {
         @memcpy(&path_buf, dir_in);
