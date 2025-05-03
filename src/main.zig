@@ -27,7 +27,7 @@ pub fn main() !void {
         };
     }
 }
-
+const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
 fn handle_dir(dir_in: anytype) !void {
     const T = @TypeOf(dir_in);
 
@@ -40,7 +40,7 @@ fn handle_dir(dir_in: anytype) !void {
     }
 
     const log = std.log;
-    dir_str = (if (T == Dir) (if (comptime std.os.isGetFdPathSupportedOnTarget(builtin.target.os)) std.os.getFdPath(dir_in.fd, &path_buf) else dir_in.realpath(".", &path_buf)) else cwd.realpath(dir_in, &path_buf)) catch |err| {
+    dir_str = (if (T == Dir) (if (GetFdPathSupported) std.os.getFdPath(dir_in.fd, &path_buf) else dir_in.realpath(".", &path_buf)) else cwd.realpath(dir_in, &path_buf)) catch |err| {
         log.err("{s}: {}", .{ dir_str, err });
         return err;
     };
