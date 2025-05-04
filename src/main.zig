@@ -32,28 +32,28 @@ fn handle_dir(dir_in: anytype) !void {
     const T = @TypeOf(dir_in);
 
     var path_buf: [std.fs.max_path_bytes]u8 = undefined;
-    var dir_str: []const u8 = path_buf[0..0];
+    var path_str: []const u8 = path_buf[0..0];
 
     if (T == [:0]const u8) {
         @memcpy(&path_buf, dir_in);
-        dir_str = path_buf[0..dir_in.len];
+        path_str = path_buf[0..dir_in.len];
     }
 
     const log = std.log;
-    dir_str = (if (T == Dir) (if (GetFdPathSupported) std.os.getFdPath(dir_in.fd, &path_buf) else dir_in.realpath(".", &path_buf)) else cwd.realpath(dir_in, &path_buf)) catch |err| {
-        log.err("{s}: {}", .{ dir_str, err });
+    path_str = (if (T == Dir) (if (GetFdPathSupported) std.os.getFdPath(dir_in.fd, &path_buf) else dir_in.realpath(".", &path_buf)) else cwd.realpath(dir_in, &path_buf)) catch |err| {
+        log.err("{s}: {}", .{ path_str, err });
         return err;
     };
 
     const dir: Dir = (if (T == [:0]const u8) cwd.openDir(dir_in, .{ .iterate = true }) else if (T == Dir) dir_in.openDir(".", .{ .iterate = true }) else @compileError("input type not supported")) catch |err|
         {
-            std.log.err("{s}: {}", .{ dir_str, err });
+            std.log.err("{s}: {}", .{ path_str, err });
             return err;
         };
 
     var duplicates = std.ArrayListUnmanaged(File).empty;
     defer {
-        log.info("{s}: deleted: {d}", .{ dir_str, duplicates.items.len });
+        log.info("{s}: deleted: {d}", .{ path_str, duplicates.items.len });
         duplicates.deinit(sys_alloc);
     }
 
@@ -65,34 +65,34 @@ fn handle_dir(dir_in: anytype) !void {
 
     var entries = dir.iterateAssumeFirstIteration();
     const error_handler = struct {
-        fn error_handler(iter: *Dir.Iterator, scope: @TypeOf(dir_str)) ?Dir.Entry {
+        fn error_handler(iter: *Dir.Iterator, scope: @TypeOf(path_str)) ?Dir.Entry {
             return iter.next() catch |err| {
                 log.err("{s}: {}", .{ scope, err });
                 return error_handler(iter, scope); //@call(.always_tail, error_handler, .{iter}); // as of 0.14.0: unclear LLVM error
             };
         }
     }.error_handler;
-    while (error_handler(&entries, dir_str)) |entry| {
+    while (error_handler(&entries, path_str)) |entry| {
         if (entry.kind != .file) continue;
 
-        path_buf[dir_str.len] = std.fs.path.sep;
-        dir_str.len += 1;
-        @memcpy(path_buf[dir_str.len..entry.name.len], entry.name);
-        dir_str.len += entry.name.len;
-        defer dir_str.len -= 1 + entry.name.len;
+        path_buf[path_str.len] = std.fs.path.sep;
+        path_str.len += 1;
+        @memcpy(path_buf[path_str.len..entry.name.len], entry.name);
+        path_str.len += entry.name.len;
+        defer path_str.len -= 1 + entry.name.len;
 
         const new_file = dir.openFile(entry.name, .{}) catch |err| {
-            log.err("{s}: {}", .{ dir_str, err });
+            log.err("{s}: {}", .{ path_str, err });
             continue;
         };
 
         var new_size = if (new_file.stat()) |stat| stat.size else |err| err: {
-            log.err("{s}: {}", .{ dir_str, err });
+            log.err("{s}: {}", .{ path_str, err });
             break :err null;
         };
         const new_data = new_file.readToEndAllocOptions(f_alloc.allocator(), new_size orelse std.math.maxInt(usize), new_size, 1, null) catch |err| {
             try errIfInSet(AllocationError, err);
-            log.err("{s}: {}", .{ dir_str, err });
+            log.err("{s}: {}", .{ path_str, err });
             continue;
         };
         defer _ = f_alloc.reset(.retain_capacity);
