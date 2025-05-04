@@ -51,7 +51,7 @@ fn handle_dir(dir_in: anytype) !void {
             return err;
         };
 
-    var duplicates = std.ArrayListAlignedUnmanaged(File, @sizeOf(File)).empty;
+    var duplicates = std.ArrayListUnmanaged(File).empty;
     defer {
         log.info("{s}: deleted: {d}", .{ dir_str, duplicates.items.len });
         duplicates.deinit(sys_alloc);
