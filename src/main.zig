@@ -74,18 +74,25 @@ fn handle_dir(dir_in: anytype) !void {
     }.error_handler;
     while (error_handler(&entries, dir_str)) |entry| {
         if (entry.kind != .file) continue;
+
+        path_buf[dir_str.len] = std.fs.path.sep;
+        dir_str.len += 1;
+        @memcpy(path_buf[dir_str.len..entry.name.len], entry.name);
+        dir_str.len += entry.name.len;
+        defer dir_str.len -= 1 + entry.name.len;
+
         const new_file = dir.openFile(entry.name, .{}) catch |err| {
-            log.err("{s}: {s}: {}", .{ dir_str, entry.name, err });
+            log.err("{s}: {}", .{ dir_str, err });
             continue;
         };
 
         var new_size = if (new_file.stat()) |stat| stat.size else |err| err: {
-            log.err("{s}: {s}: {}", .{ dir_str, entry.name, err });
+            log.err("{s}: {}", .{ dir_str, err });
             break :err null;
         };
         const new_data = new_file.readToEndAllocOptions(f_alloc.allocator(), new_size orelse std.math.maxInt(usize), new_size, 1, null) catch |err| {
             try errIfInSet(AllocationError, err);
-            log.err("{s}: {s}: {}", .{ dir_str, entry.name, err });
+            log.err("{s}: {}", .{ dir_str, err });
             continue;
         };
         defer _ = f_alloc.reset(.retain_capacity);
