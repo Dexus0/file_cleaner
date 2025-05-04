@@ -27,6 +27,9 @@ pub fn main() !void {
         };
     }
 }
+
+const max_file_size = std.math.maxInt(usize) / 2;
+
 const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
 fn handle_dir(dir_in: anytype) !void {
     const T = @TypeOf(dir_in);
@@ -90,7 +93,7 @@ fn handle_dir(dir_in: anytype) !void {
             log.err("{s}: {}", .{ path_str, err });
             break :err null;
         };
-        const new_data = new_file.readToEndAllocOptions(f_alloc.allocator(), new_size orelse std.math.maxInt(usize), new_size, 1, null) catch |err| {
+        const new_data = new_file.readToEndAllocOptions(f_alloc.allocator(), max_file_size, new_size, 1, null) catch |err| {
             try errIfInSet(AllocationError, err);
             log.err("{s}: {}", .{ path_str, err });
             continue;
