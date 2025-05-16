@@ -28,7 +28,7 @@ pub fn main() !void {
     }
 }
 
-const max_file_size = std.math.maxInt(usize) / 2;
+const max_file_size = @import("constants.zig").max_file_size;
 
 const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
 fn handle_dir(dir_in: anytype) !void {
