@@ -115,5 +115,7 @@ fn data_eql(a: []const u8, b: []const u8) bool {
     return true;
 }
 fn errIfInSet(err_set: type, err: anytype) err_set!void {
-    for (@typeInfo(err_set).error_set.?) |err_info| if (std.mem.eql(u8, @errorName(err), err_info.name)) return @errorCast(err);
+    for (@typeInfo(err_set).error_set.?) |err_info|
+        if (std.mem.eql(u8, @errorName(err), err_info.name))
+            return @errorCast(err);
 }
