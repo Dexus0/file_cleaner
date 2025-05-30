@@ -80,7 +80,7 @@ fn handle_dir(dir_in: anytype) !void {
 
         path_buf[path_str.len] = std.fs.path.sep;
         path_str.len += 1;
-        @memcpy(path_buf[path_str.len..entry.name.len], entry.name);
+        @memcpy(path_buf[path_str.len..][0..entry.name.len], entry.name);
         path_str.len += entry.name.len;
         defer path_str.len -= 1 + entry.name.len;
 
