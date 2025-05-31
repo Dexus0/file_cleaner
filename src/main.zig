@@ -79,6 +79,8 @@ fn handle_dir(dir_in: anytype) !void {
             log.err("{s}: {}", .{ path_str, err });
             continue;
         };
+        var file_safe = false;
+        defer if (!file_safe) new_file.close();
 
         const new_size = if (new_file.stat()) |stat| stat.size else |err| {
             log.err("{s}: {}", .{ path_str, err });
@@ -94,6 +96,7 @@ fn handle_dir(dir_in: anytype) !void {
             unique.key_ptr.file = new_file;
             unique.key_ptr.size = new_size;
         }
+        file_safe = true;
     }
 }
 
