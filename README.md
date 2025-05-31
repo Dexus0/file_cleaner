@@ -1,6 +1,4 @@
 # File Cleaner
-* 🚧 Currently doesn't delete files.
-
 Removes duplicates from the target directories (or CWD if none were provided).
 It does not recurse into sub-directories.
 

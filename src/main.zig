@@ -55,12 +55,6 @@ fn handle_dir(dir_in: anytype) !void {
             return err;
         };
 
-    var duplicates = std.ArrayListUnmanaged(File).empty;
-    defer {
-        log.info("{s}: deleted: {d}", .{ path_str, duplicates.items.len });
-        duplicates.deinit(sys_alloc);
-    }
-
     var unique_files = file_hash_set.FileHashSet.empty;
     defer unique_files.deinit(sys_alloc);
 
@@ -93,9 +87,10 @@ fn handle_dir(dir_in: anytype) !void {
         };
 
         const unique = try unique_files.getOrPut(sys_alloc, .{ .file = new_file, .size = new_size });
-        if (unique.found_existing)
-            try duplicates.append(sys_alloc, new_file)
-        else {
+        if (unique.found_existing) {
+            new_file.close();
+            dir.deleteFile(path_str) catch |err| log.err("{s}: {}", .{ path_str, err });
+        } else {
             try new_file.downgradeLock();
             unique.key_ptr.file = new_file;
             unique.key_ptr.size = new_size;
