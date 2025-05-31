@@ -29,6 +29,7 @@ pub fn main() !void {
 }
 
 const max_file_size = @import("constants.zig").max_file_size;
+const file_hash_set = @import("file_hash_set.zig");
 
 const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
 fn handle_dir(dir_in: anytype) !void {
@@ -60,11 +61,8 @@ fn handle_dir(dir_in: anytype) !void {
         duplicates.deinit(sys_alloc);
     }
 
-    var unique_files = std.StringHashMapUnmanaged(void).empty;
+    var unique_files = file_hash_set.FileHashSet.empty;
     defer unique_files.deinit(sys_alloc);
-
-    var f_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer f_alloc.deinit();
 
     var entries = dir.iterateAssumeFirstIteration();
     const error_handler = struct {
@@ -84,36 +82,27 @@ fn handle_dir(dir_in: anytype) !void {
         path_str.len += entry.name.len;
         defer path_str.len -= 1 + entry.name.len;
 
-        const new_file = dir.openFile(entry.name, .{}) catch |err| {
+        const new_file = dir.openFile(entry.name, .{ .mode = .read_only, .lock = .exclusive, .lock_nonblocking = true }) catch |err| {
             log.err("{s}: {}", .{ path_str, err });
             continue;
         };
 
-        var new_size = if (new_file.stat()) |stat| stat.size else |err| err: {
-            log.err("{s}: {}", .{ path_str, err });
-            break :err null;
-        };
-        const new_data = new_file.readToEndAllocOptions(f_alloc.allocator(), max_file_size, new_size, 1, null) catch |err| {
-            try errIfInSet(AllocationError, err);
+        const new_size = if (new_file.stat()) |stat| stat.size else |err| {
             log.err("{s}: {}", .{ path_str, err });
             continue;
         };
-        defer _ = f_alloc.reset(.retain_capacity);
 
-        new_size = new_data.len;
-
-        const unique = try unique_files.getOrPut(sys_alloc, new_data);
+        const unique = try unique_files.getOrPut(sys_alloc, file_hash_set.FileKey{ .file = new_file, .size = new_size });
         if (unique.found_existing)
-            try duplicates.append(sys_alloc, new_file);
+            try duplicates.append(sys_alloc, new_file)
+        else {
+            try new_file.downgradeLock();
+            unique.key_ptr.file = new_file;
+            unique.key_ptr.size = new_size;
+        }
     }
 }
 
-fn data_eql(a: []const u8, b: []const u8) bool {
-    for (a, b) |a_c, b_c| {
-        if (a_c != b_c) return false;
-    }
-    return true;
-}
 fn errIfInSet(err_set: type, err: anytype) err_set!void {
     for (@typeInfo(err_set).error_set.?) |err_info|
         if (std.mem.eql(u8, @errorName(err), err_info.name))

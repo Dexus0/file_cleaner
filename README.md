@@ -1,5 +1,4 @@
 # File Cleaner
-* ⚠️ Due to me misunderstanding the std's HashMap implementation, it doesn't properly check if the Keys match.
 * 🚧 Currently doesn't delete files.
 
 Removes duplicates from the target directories (or CWD if none were provided).
