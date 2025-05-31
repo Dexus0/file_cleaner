@@ -89,8 +89,9 @@ fn handle_dir(dir_in: anytype) !void {
 
         const unique = try unique_files.getOrPut(sys_alloc, .{ .file = new_file, .size = new_size });
         if (unique.found_existing) {
-            new_file.close();
+            if (is_windows) new_file.close();
             dir.deleteFile(path_str) catch |err| log.err("{s}: {}", .{ path_str, err });
+            if (!is_windows) new_file.close();
         } else {
             try new_file.downgradeLock();
             unique.key_ptr.file = new_file;
@@ -99,6 +100,7 @@ fn handle_dir(dir_in: anytype) !void {
         file_safe = true;
     }
 }
+const is_windows = builtin.target.os.tag == .windows;
 
 fn errIfInSet(err_set: type, err: anytype) err_set!void {
     for (@typeInfo(err_set).error_set.?) |err_info|
