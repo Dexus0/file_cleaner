@@ -28,7 +28,6 @@ pub fn main() !void {
     }
 }
 
-const max_file_size = @import("constants.zig").max_file_size;
 const file_hash_set = @import("file_hash_set.zig");
 
 const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
