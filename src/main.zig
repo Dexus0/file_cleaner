@@ -92,7 +92,7 @@ fn handle_dir(dir_in: anytype) !void {
             continue;
         };
 
-        const unique = try unique_files.getOrPut(sys_alloc, file_hash_set.FileKey{ .file = new_file, .size = new_size });
+        const unique = try unique_files.getOrPut(sys_alloc, .{ .file = new_file, .size = new_size });
         if (unique.found_existing)
             try duplicates.append(sys_alloc, new_file)
         else {
