@@ -39,7 +39,7 @@ fn handle_dir(dir_in: anytype) !void {
     var path_str: []const u8 = path_buf[0..0];
 
     if (T == [:0]const u8) {
-        @memcpy(&path_buf, dir_in);
+        @memcpy(path_buf[0..dir_in.len], dir_in);
         path_str = path_buf[0..dir_in.len];
     }
 
