@@ -11,8 +11,6 @@ const AllocationError = std.mem.Allocator.Error;
 const File = std.fs.File;
 const Dir = std.fs.Dir;
 
-const cwd = std.fs.cwd();
-
 pub fn main() !void {
     {
         var a_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -21,7 +19,7 @@ pub fn main() !void {
         _ = args.skip(); //skip 1st value (current program name)
 
         var next = args.next();
-        if (next == null) try handle_dir(cwd) else while (next) |arg| : (next = args.next()) handle_dir(arg) catch |err| {
+        if (next == null) try handle_dir(std.fs.cwd()) else while (next) |arg| : (next = args.next()) handle_dir(arg) catch |err| {
             try errIfInSet(AllocationError, err);
             continue;
         };
@@ -43,6 +41,7 @@ fn handle_dir(dir_in: anytype) !void {
     }
 
     const log = std.log;
+    const cwd = std.fs.cwd();
     path_str = (if (T == Dir) (if (GetFdPathSupported) std.os.getFdPath(dir_in.fd, &path_buf) else dir_in.realpath(".", &path_buf)) else cwd.realpath(dir_in, &path_buf)) catch |err| {
         log.err("{s}: {}", .{ path_str, err });
         return err;
