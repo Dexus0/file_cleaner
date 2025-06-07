@@ -88,7 +88,8 @@ fn fatalError(err: anytype) noreturn {
     }
 }
 
+pub const FileSize = @FieldType(std.fs.File.Stat, "size");
 pub const FileKey = struct {
     file: std.fs.File,
-    size: u64,
+    size: FileSize,
 };
