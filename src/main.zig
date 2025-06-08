@@ -27,6 +27,7 @@ pub fn main() !void {
 }
 
 const file_hash_set = @import("file_hash_set.zig");
+const FileHashSet = file_hash_set.FileHashSet;
 
 const log = std.log;
 
@@ -54,7 +55,7 @@ fn handle_dir(dir_in: anytype) !void {
             return err;
         };
 
-    var unique_files = file_hash_set.FileHashSet.empty;
+    var unique_files = FileHashSet.empty;
     defer unique_files.deinit(sys_alloc);
 
     var entries = dir.iterateAssumeFirstIteration();
@@ -75,32 +76,31 @@ fn handle_dir(dir_in: anytype) !void {
         path_str.len += entry.name.len;
         defer path_str.len -= 1 + entry.name.len;
 
-        const new_file = dir.openFile(entry.name, .{ .mode = .read_only, .lock = .exclusive, .lock_nonblocking = true }) catch |err| {
-            logPathedError(path_str, err);
-            continue;
+        handleFile(dir, path_str, &unique_files) catch |err| switch (err) {
+            error.OutOfMemory => return err,
+            else => |e| logPathedError(path_str, e),
         };
-        var file_safe = false;
-        defer if (!file_safe) new_file.close();
-
-        const new_size = if (new_file.stat()) |stat| stat.size else |err| {
-            logPathedError(path_str, err);
-            continue;
-        };
-
-        const unique = try unique_files.getOrPut(sys_alloc, .{ .file = new_file, .size = new_size });
-        if (unique.found_existing) {
-            if (is_windows) new_file.close();
-            dir.deleteFile(path_str) catch |err| logPathedError(path_str, err);
-            if (!is_windows) new_file.close();
-        } else {
-            try new_file.downgradeLock();
-            unique.key_ptr.file = new_file;
-            unique.key_ptr.size = new_size;
-        }
-        file_safe = true;
     }
 }
 const is_windows = builtin.target.os.tag == .windows;
+
+fn handleFile(dir: Dir, path: []const u8, unique_files: *FileHashSet) !void {
+    const file = try dir.openFile(path, .{ .mode = .read_only, .lock = .exclusive, .lock_nonblocking = true });
+    errdefer file.close();
+
+    const size = (try file.stat()).size;
+    const unique = try unique_files.getOrPut(sys_alloc, .{ .file = file, .size = size });
+    if (unique.found_existing) {
+        @branchHint(.unpredictable);
+        if (is_windows) file.close();
+        defer if (!is_windows) file.close();
+        dir.deleteFile(path) catch |err| logPathedError(path, err);
+    } else {
+        try file.downgradeLock();
+        unique.key_ptr.file = file;
+        unique.key_ptr.size = size;
+    }
+}
 
 fn logPathedError(path: []const u8, err: anytype) void {
     log.err("{s}: {}", .{ path, err });
