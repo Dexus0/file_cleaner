@@ -96,9 +96,13 @@ fn handleFile(dir: Dir, path: []const u8, unique_files: *FileHashSet) !void {
         defer if (!is_windows) file.close();
         dir.deleteFile(path) catch |err| logPathedError(path, err);
     } else {
-        try file.downgradeLock();
+        const result = file.downgradeLock();
         unique.key_ptr.file = file;
         unique.key_ptr.size = size;
+        result catch |err| switch (err) {
+            error.FileLocksNotSupported => {},
+            else => |e| logPathedError(path, e),
+        };
     }
 }
 
