@@ -63,7 +63,8 @@ fn handle_dir(dir_in: anytype) !void {
         fn error_handler(iter: *Dir.Iterator, scope: @TypeOf(path_str)) ?Dir.Entry {
             return iter.next() catch |err| {
                 logPathedError(scope, err);
-                return error_handler(iter, scope); //@call(.always_tail, error_handler, .{iter}); // as of 0.14.0: unclear LLVM error
+                // return @call(.always_tail, error_handler, .{ iter, scope }); // as of 0.14.1 LLVM error
+                return error_handler(iter, scope);
             };
         }
     }.error_handler;
