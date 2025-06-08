@@ -19,7 +19,7 @@ pub fn main() !void {
         _ = args.skip(); //skip 1st value (current program name)
 
         var next = args.next();
-        if (next == null) try handle_dir(std.fs.cwd()) else while (next) |arg| : (next = args.next()) handle_dir(arg) catch |err| {
+        if (next == null) try handleDir(std.fs.cwd()) else while (next) |arg| : (next = args.next()) handleDir(arg) catch |err| {
             try errIfInSet(AllocationError, err);
             continue;
         };
@@ -32,7 +32,7 @@ const FileHashSet = file_hash_set.FileHashSet;
 const log = std.log;
 
 const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
-fn handle_dir(dir_in: anytype) !void {
+fn handleDir(dir_in: anytype) !void {
     const T = @TypeOf(dir_in);
 
     var path_buf: [std.fs.max_path_bytes]u8 = undefined;
