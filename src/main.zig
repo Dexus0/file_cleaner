@@ -28,6 +28,8 @@ pub fn main() !void {
 
 const file_hash_set = @import("file_hash_set.zig");
 
+const log = std.log;
+
 const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
 fn handle_dir(dir_in: anytype) !void {
     const T = @TypeOf(dir_in);
@@ -40,16 +42,15 @@ fn handle_dir(dir_in: anytype) !void {
         path_str = path_buf[0..dir_in.len];
     }
 
-    const log = std.log;
     const cwd = std.fs.cwd();
     path_str = (if (T == Dir) (if (GetFdPathSupported) std.os.getFdPath(dir_in.fd, &path_buf) else dir_in.realpath(".", &path_buf)) else cwd.realpath(dir_in, &path_buf)) catch |err| {
-        log.err("{s}: {}", .{ path_str, err });
+        logPathedError(path_str, err);
         return err;
     };
 
     const dir: Dir = (if (T == [:0]const u8) cwd.openDir(dir_in, .{ .iterate = true }) else if (T == Dir) dir_in.openDir(".", .{ .iterate = true }) else @compileError("input type not supported")) catch |err|
         {
-            std.log.err("{s}: {}", .{ path_str, err });
+            logPathedError(path_str, err);
             return err;
         };
 
@@ -60,7 +61,7 @@ fn handle_dir(dir_in: anytype) !void {
     const error_handler = struct {
         fn error_handler(iter: *Dir.Iterator, scope: @TypeOf(path_str)) ?Dir.Entry {
             return iter.next() catch |err| {
-                log.err("{s}: {}", .{ scope, err });
+                logPathedError(scope, err);
                 return error_handler(iter, scope); //@call(.always_tail, error_handler, .{iter}); // as of 0.14.0: unclear LLVM error
             };
         }
@@ -75,21 +76,21 @@ fn handle_dir(dir_in: anytype) !void {
         defer path_str.len -= 1 + entry.name.len;
 
         const new_file = dir.openFile(entry.name, .{ .mode = .read_only, .lock = .exclusive, .lock_nonblocking = true }) catch |err| {
-            log.err("{s}: {}", .{ path_str, err });
+            logPathedError(path_str, err);
             continue;
         };
         var file_safe = false;
         defer if (!file_safe) new_file.close();
 
         const new_size = if (new_file.stat()) |stat| stat.size else |err| {
-            log.err("{s}: {}", .{ path_str, err });
+            logPathedError(path_str, err);
             continue;
         };
 
         const unique = try unique_files.getOrPut(sys_alloc, .{ .file = new_file, .size = new_size });
         if (unique.found_existing) {
             if (is_windows) new_file.close();
-            dir.deleteFile(path_str) catch |err| log.err("{s}: {}", .{ path_str, err });
+            dir.deleteFile(path_str) catch |err| logPathedError(path_str, err);
             if (!is_windows) new_file.close();
         } else {
             try new_file.downgradeLock();
@@ -100,6 +101,10 @@ fn handle_dir(dir_in: anytype) !void {
     }
 }
 const is_windows = builtin.target.os.tag == .windows;
+
+fn logPathedError(path: []const u8, err: anytype) void {
+    log.err("{s}: {}", .{ path, err });
+}
 
 fn errIfInSet(err_set: type, err: anytype) err_set!void {
     for (@typeInfo(err_set).error_set.?) |err_info|
