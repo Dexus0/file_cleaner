@@ -19,10 +19,13 @@ pub fn main() !void {
         _ = args.skip(); //skip 1st value (current program name)
 
         var next = args.next();
-        if (next == null) try handleDir(std.fs.cwd()) else while (next) |arg| : (next = args.next()) handleDir(arg) catch |err| {
-            try errIfInSet(AllocationError, err);
-            continue;
-        };
+        if (next == null)
+            try handleDir(".")
+        else while (next) |arg| : (next = args.next())
+            handleDir(arg) catch |err| {
+                try errIfInSet(AllocationError, err);
+                continue;
+            };
     }
 }
 
@@ -31,29 +34,21 @@ const FileHashSet = file_hash_set.FileHashSet;
 
 const log = std.log;
 
-const GetFdPathSupported = std.os.isGetFdPathSupportedOnTarget(builtin.target.os);
-fn handleDir(dir_in: anytype) !void {
-    const T = @TypeOf(dir_in);
-
+fn handleDir(dir_in: []const u8) !void {
     var path_buf: [std.fs.max_path_bytes]u8 = undefined;
-    var path_str: []const u8 = path_buf[0..0];
-
-    if (T == [:0]const u8) {
-        @memcpy(path_buf[0..dir_in.len], dir_in);
-        path_str = path_buf[0..dir_in.len];
-    }
+    @memcpy(path_buf[0..dir_in.len], dir_in);
+    var path_str: []const u8 = path_buf[0..dir_in.len];
 
     const cwd = std.fs.cwd();
-    path_str = (if (T == Dir) (if (GetFdPathSupported) std.os.getFdPath(dir_in.fd, &path_buf) else dir_in.realpath(".", &path_buf)) else cwd.realpath(dir_in, &path_buf)) catch |err| {
+    path_str = cwd.realpath(path_str, &path_buf) catch |err| {
         logPathedError(path_str, err);
         return err;
     };
 
-    const dir: Dir = (if (T == [:0]const u8) cwd.openDir(dir_in, .{ .iterate = true }) else if (T == Dir) dir_in.openDir(".", .{ .iterate = true }) else @compileError("input type not supported")) catch |err|
-        {
-            logPathedError(path_str, err);
-            return err;
-        };
+    const dir: Dir = cwd.openDir(path_str, .{ .iterate = true }) catch |err| {
+        logPathedError(path_str, err);
+        return err;
+    };
 
     var unique_files = FileHashSet.empty;
     defer unique_files.deinit(sys_alloc);
