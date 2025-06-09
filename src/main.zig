@@ -58,16 +58,7 @@ fn handleDir(dir_in: []const u8) !void {
     }
 
     var entries = dir.iterateAssumeFirstIteration();
-    const error_handler = struct {
-        fn error_handler(iter: *Dir.Iterator, scope: @TypeOf(path_str)) ?Dir.Entry {
-            return iter.next() catch |err| {
-                logPathedError(scope, err);
-                // return @call(.always_tail, error_handler, .{ iter, scope }); // as of 0.14.1 LLVM error
-                return error_handler(iter, scope);
-            };
-        }
-    }.error_handler;
-    while (error_handler(&entries, path_str)) |entry| {
+    while (skipIterErrors(&entries, path_str)) |entry| {
         if (entry.kind != .file) continue;
 
         path_buf[path_str.len] = std.fs.path.sep;
@@ -104,6 +95,14 @@ fn handleFile(dir: Dir, path: []const u8, unique_files: *FileHashSet) !void {
             else => |e| logPathedError(path, e),
         };
     }
+}
+
+fn skipIterErrors(iter: *Dir.Iterator, scope: []const u8) ?Dir.Entry {
+    while (true)
+        if (iter.next()) |optional|
+            return optional
+        else |err|
+            logPathedError(scope, err);
 }
 
 fn logPathedError(path: []const u8, err: anytype) void {
