@@ -35,7 +35,7 @@ const FileHashSet = file_hash_set.FileHashSet;
 const log = std.log;
 
 fn handleDir(dir_in: []const u8) !void {
-    var path_buf: [std.fs.max_path_bytes]u8 = undefined;
+    var path_buf: [std.fs.max_path_bytes - 1]u8 = undefined;
     @memcpy(path_buf[0..dir_in.len], dir_in);
     var path_str: []const u8 = path_buf[0..dir_in.len];
 
