@@ -51,7 +51,11 @@ fn handleDir(dir_in: []const u8) !void {
     };
 
     var unique_files = FileHashSet.empty;
-    defer unique_files.deinit(sys_alloc);
+    defer {
+        var iter = unique_files.keyIterator();
+        while (iter.next()) |key| key.file.close();
+        unique_files.deinit(sys_alloc);
+    }
 
     var entries = dir.iterateAssumeFirstIteration();
     const error_handler = struct {
