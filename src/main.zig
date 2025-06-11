@@ -45,10 +45,11 @@ fn handleDir(dir_in: []const u8) !void {
         return err;
     };
 
-    const dir: Dir = cwd.openDir(path_str, .{ .iterate = true }) catch |err| {
+    var dir: Dir = cwd.openDir(path_str, .{ .iterate = true }) catch |err| {
         logPathedError(path_str, err);
         return err;
     };
+    defer dir.close();
 
     var unique_files = FileHashSet.empty;
     defer {
