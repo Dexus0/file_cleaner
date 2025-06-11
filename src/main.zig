@@ -11,12 +11,15 @@ const AllocationError = std.mem.Allocator.Error;
 const File = std.fs.File;
 const Dir = std.fs.Dir;
 
+var cwd: Dir = undefined;
 pub fn main() !void {
     {
         var a_alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         var args = try std.process.argsWithAllocator(a_alloc.allocator());
         defer a_alloc.deinit();
         _ = args.skip(); //skip 1st value (current program name)
+
+        cwd = std.fs.cwd();
 
         var next = args.next();
         if (next == null)
@@ -39,7 +42,6 @@ fn handleDir(dir_in: []const u8) !void {
     @memcpy(path_buf[0..dir_in.len], dir_in);
     var path_str: []const u8 = path_buf[0..dir_in.len];
 
-    const cwd = std.fs.cwd();
     path_str = cwd.realpath(path_str, &path_buf) catch |err| {
         logPathedError(path_str, err);
         return err;
