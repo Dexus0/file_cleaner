@@ -70,7 +70,7 @@ fn handleDir(dir_in: []const u8) !void {
         path_str.len += entry.name.len;
         defer path_str.len -= 1 + entry.name.len;
 
-        handleFile(dir, path_str, &unique_files) catch |err| switch (err) {
+        handleFile(path_str, &unique_files) catch |err| switch (err) {
             error.OutOfMemory => return err,
             else => |e| logPathedError(path_str, e),
         };
@@ -78,8 +78,8 @@ fn handleDir(dir_in: []const u8) !void {
 }
 const is_windows = builtin.target.os.tag == .windows;
 
-fn handleFile(dir: Dir, path: []const u8, unique_files: *FileHashSet) !void {
-    const file = try dir.openFile(path, .{ .mode = .read_only, .lock = .exclusive, .lock_nonblocking = true });
+fn handleFile(path: []const u8, unique_files: *FileHashSet) !void {
+    const file = try cwd.openFile(path, .{ .mode = .read_only, .lock = .exclusive, .lock_nonblocking = true });
     errdefer file.close();
 
     const size = (try file.stat()).size;
@@ -88,7 +88,7 @@ fn handleFile(dir: Dir, path: []const u8, unique_files: *FileHashSet) !void {
         @branchHint(.unpredictable);
         if (is_windows) file.close();
         defer if (!is_windows) file.close();
-        dir.deleteFile(path) catch |err| logPathedError(path, err);
+        cwd.deleteFile(path) catch |err| logPathedError(path, err);
     } else {
         file.downgradeLock() catch |err| switch (err) {
             error.FileLocksNotSupported => {},
