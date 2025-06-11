@@ -42,11 +42,6 @@ fn handleDir(dir_in: []const u8) !void {
     @memcpy(path_buf[0..dir_in.len], dir_in);
     var path_str: []const u8 = path_buf[0..dir_in.len];
 
-    path_str = cwd.realpath(path_str, &path_buf) catch |err| {
-        logPathedError(path_str, err);
-        return err;
-    };
-
     var dir: Dir = cwd.openDir(path_str, .{ .iterate = true }) catch |err| {
         logPathedError(path_str, err);
         return err;
