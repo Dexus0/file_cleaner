@@ -78,14 +78,17 @@ fn handleFile(path: []const u8, unique_files: *FileHashSet) !void {
     errdefer file.close();
 
     const size = (try file.stat()).size;
-    const unique = try unique_files.getOrPut(sys_alloc, .{ .file = file, .size = size });
+    const unique = try unique_files.getOrPutAdapted(sys_alloc, file_hash_set.FileKey{ .file = file, .size = size }, file_hash_set.NewFileContext{});
     if (unique.found_existing) {
         @branchHint(.unpredictable);
         if (is_windows) file.close();
         defer if (!is_windows) file.close();
         cwd.deleteFile(path) catch |err| logPathedError(path, err);
     } else {
-        file.downgradeLock() catch |err| switch (err) {
+        const result = file.downgradeLock();
+        unique.key_ptr.file = file;
+        unique.key_ptr.size = size;
+        result catch |err| switch (err) {
             error.FileLocksNotSupported => {},
             else => |e| logPathedError(path, e),
         };

@@ -10,14 +10,17 @@ pub const FileHashSet = HashMap(FileKey, void, FileContext, hash_map.default_max
 const buflen = std.heap.page_size_min;
 const BufType = [buflen]u8;
 
-pub const FileContext = struct {
+/// Asumes the reader has not been used before.
+/// Does not reset the reader for hashes.
+///
+/// Intended to be used with a newly opened file through `getOrPutAdapted`.
+pub const NewFileContext = struct {
     const Self = @This();
     pub fn hash(self: Self, a: FileKey) u64 {
         _ = self;
         var hasher = Hasher.init(seed);
         var buffer: BufType = undefined;
 
-        a.file.seekTo(0) catch |err| fatalError(err);
         while (true) {
             const rd_len = a.file.readAll(&buffer) catch |err| fatalError(err);
             hasher.update(buffer[0..rd_len]);
@@ -43,6 +46,20 @@ pub const FileContext = struct {
                 break;
         }
         return true;
+    }
+};
+/// Assumes the reader has been used before.
+/// Resets the reader before all operations.
+pub const FileContext = struct {
+    const Self = @This();
+    pub fn hash(self: Self, a: FileKey) u64 {
+        _ = self;
+        a.file.seekTo(0) catch |err| fatalError(err);
+        return NewFileContext.hash(undefined, a);
+    }
+    pub fn eql(self: Self, a: FileKey, b: FileKey) bool {
+        _ = self;
+        return NewFileContext.eql(undefined, a, b);
     }
 };
 
