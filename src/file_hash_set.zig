@@ -5,6 +5,7 @@ const HashMap = hash_map.HashMapUnmanaged;
 const Hasher = std.hash.Wyhash;
 const seed = 0;
 
+/// File handles in the keys need to be closed manually.
 pub const FileHashSet = HashMap(FileKey, void, FileContext, hash_map.default_max_load_percentage);
 
 const buflen = std.heap.page_size_min;
