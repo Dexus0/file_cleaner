@@ -56,7 +56,7 @@ fn handleDir(dir_in: []const u8) !void {
     }
 
     var entries = dir.iterateAssumeFirstIteration();
-    while (skipIterErrors(&entries, path_str)) |entry| {
+    while (nextSkipErrors(&entries, path_str)) |entry| {
         if (entry.kind != .file) continue;
 
         path_buf[path_str.len] = std.fs.path.sep;
@@ -95,7 +95,7 @@ fn handleFile(path: []const u8, unique_files: *FileHashSet) !void {
     }
 }
 
-fn skipIterErrors(iter: *Dir.Iterator, scope: []const u8) ?Dir.Entry {
+fn nextSkipErrors(iter: *Dir.Iterator, scope: []const u8) ?Dir.Entry {
     while (true)
         if (iter.next()) |optional|
             return optional
