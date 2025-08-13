@@ -78,7 +78,7 @@ fn handleFile(path: []const u8, unique_files: *FileHashSet) !void {
     errdefer file.close();
 
     const size = (try file.stat()).size;
-    const unique = try unique_files.getOrPutAdapted(sys_alloc, file_hash_set.FileKey{ .file = file, .size = size }, file_hash_set.NewFileContext{});
+    const unique = try unique_files.getOrPutAdapted(sys_alloc, file_hash_set.FileKey{ .file = file, .size = size }, file_hash_set.FileContext{});
     if (unique.found_existing) {
         @branchHint(.unpredictable);
         if (is_windows) file.close();
